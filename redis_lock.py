@@ -47,7 +47,7 @@ class RedisLock:
         # A单元 先删除锁，自己再重新竞锁，且得到锁，B 才到删除锁的地方，把A 单元的加的锁给删除了，BCD 单元重新竞锁，有一个成功，导致非法进入
         self.assure_lock_key = self.lock_key + "_assure"
         self.lock_expire = lock_expire_time
-        self.lock_gap = int(_lock_gap / 1000)
+        self.lock_gap = _lock_gap / 1000.0
         self.lock_local = threading.local()
 
     def is_locked(self):
@@ -133,18 +133,18 @@ if __name__ == "__main__":
     def test_lock(shared_x):
         n = 0
         while n < 3:
-            redis_lock.lock()
-            redis_lock.lock()
-            n += 1
-            shared_x.value += 1
-            print "{0} {1} lock success and do {2}".format(os.getpid(),
-                                                           threading.currentThread().name, shared_x.value)
-            # print "do lock thing"
-            time.sleep(0.1)
-            redis_lock.unlock()
-            redis_lock.unlock()
-            # print "release lock and do dump " + str(shared_x.value)
-            # print "dump " + str(n) + " done"
+            if redis_lock.try_lock(3):
+                redis_lock.lock()
+                n += 1
+                shared_x.value += 1
+                print "{0} {1} lock success and do {2}".format(os.getpid(),
+                                                               threading.currentThread().name, shared_x.value)
+                # print "do lock thing"
+                time.sleep(0.1)
+                redis_lock.unlock()
+                redis_lock.unlock()
+                # print "release lock and do dump " + str(shared_x.value)
+                # print "dump " + str(n) + " done"
 
     def test_lock_inv(shared_x):
         t_s = []
